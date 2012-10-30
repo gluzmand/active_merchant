@@ -265,6 +265,12 @@ orbital_gateway:
   password: PASSWORD
   merchant_id: MERCHANTID
 
+pay_dollar:
+  merchant_id: 1
+  success_url: http://example.com/success
+  fail_url: http://example.com/fail
+  error_url: http://example.com/error
+
 # Working credentials, no need to replace
 pay_gate_xml:
   login: '10011021600'
