@@ -266,7 +266,7 @@ orbital_gateway:
   merchant_id: MERCHANTID
 
 pay_dollar:
-  merchant_id: 1
+  merchant_id: MERCHANT_ID
   success_url: http://example.com/success
   fail_url: http://example.com/fail
   error_url: http://example.com/error

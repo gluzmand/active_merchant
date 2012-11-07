@@ -6,14 +6,14 @@ class RemotePayDollarTest < Test::Unit::TestCase
   def setup
     @gateway = PayDollarGateway.new(fixtures(:pay_dollar))
 
-    @amount = 100
-    @credit_card = credit_card('4000100011112224')
+    @amount = 100.0
+    @credit_card = credit_card('4918914107195005', :year => '2015', :month => '07')
     @declined_card = credit_card('4000300011112220')
 
+    t = Time.now
     @options = {
-      :order_id => '1',
-      :billing_address => address,
-      :description => 'Store Purchase'
+      # The order id must be unique for PayDollar.
+      :order_id => "#{t.to_i}:#{t.usec}",
     }
   end
 
@@ -47,12 +47,9 @@ class RemotePayDollarTest < Test::Unit::TestCase
   end
 
   def test_invalid_login
-    gateway = PayDollarGateway.new(
-                :merchant_id => '',
-                :success_url => 'http://example.com/success',
-                :fail_url => 'http://example.com/fail',
-                :error_url => 'http://example.com/error',
-              )
+    attrs = fixtures(:pay_dollar)
+    attrs[:merchant_id] = 'INVALID'
+    gateway = PayDollarGateway.new(attrs)
     assert response = gateway.purchase(@amount, @credit_card, @options)
     assert_failure response
     assert_equal 'Parameter Merchant Id Incorrect', response.message

@@ -90,8 +90,10 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_invoice(post, options)
-        post[:orderRef] = ''
+        post[:orderRef] = options[:order_id]
+        # Hard-coded to HKD/344 until another merchant uses PayDollar.
         post[:currCode] = '344'
+        # Hard-coded to E/English until another merchant uses PayDollar.
         post[:lang] = 'E'
       end
 
@@ -151,7 +153,7 @@ module ActiveMerchant #:nodoc:
       end
 
       def success_for(path)
-        !! path[@options[:success_url]]
+        !! path.include?(@options[:success_url])
       end
 
       def message_for(success, path)
