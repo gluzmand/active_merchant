@@ -55,18 +55,18 @@ module ActiveMerchant #:nodoc:
         super
       end
 
-      def authorize(money, credit_card, options = {})
+      def authorize(amount_in_cents, credit_card, options = {})
         post = post_data(AUTHORIZE, options)
-        post[:amount] = money
+        post[:amount] = amount(amount_in_cents)
         add_invoice(post, options)
         add_credit_card(post, credit_card)
 
         commit(AUTHORIZE, post)
       end
 
-      def purchase(money, credit_card, options = {})
+      def purchase(amount_in_cents, credit_card, options = {})
         post = post_data(PURCHASE, options)
-        post[:amount] = money
+        post[:amount] = amount(amount_in_cents)
         add_invoice(post, options)
         add_credit_card(post, credit_card)
 
