@@ -55,6 +55,8 @@ module ActiveMerchant #:nodoc:
         super
       end
 
+      # Public: Authorizes a purchase but does not capture it.
+      # Returns a regular Response object.
       def authorize(amount_in_cents, credit_card, options = {})
         post = post_data(AUTHORIZE, options)
         post[:amount] = amount(amount_in_cents)
@@ -64,6 +66,8 @@ module ActiveMerchant #:nodoc:
         commit(AUTHORIZE, post)
       end
 
+      # Public: Makes a purchase, capturing the money immediately.
+      # Returns a regular Response object.
       def purchase(amount_in_cents, credit_card, options = {})
         post = post_data(PURCHASE, options)
         post[:amount] = amount(amount_in_cents)
@@ -73,12 +77,11 @@ module ActiveMerchant #:nodoc:
         commit(PURCHASE, post)
       end
 
-      # def capture(money, authorization, options = {})
-      #   commit('capture', money, post)
-      # end
 
       private
 
+
+      # Internal: Generates basic post data required for PayDollar.
       def post_data(action, parameters = {})
         data = PostData.new
         data[:merchantId] = @options[:merchant_id]
@@ -89,6 +92,7 @@ module ActiveMerchant #:nodoc:
         data
       end
 
+      # Internal: Adds invoice details to post data.
       def add_invoice(post, options)
         post[:orderRef] = options[:order_id]
         # Hard-coded to HKD/344 until another merchant uses PayDollar.
@@ -97,6 +101,7 @@ module ActiveMerchant #:nodoc:
         post[:lang] = 'E'
       end
 
+      # Internal: Adds credit card details to post data.
       def add_credit_card(post, credit_card)
         post[:pMethod] = CARD_BRANDS[credit_card.brand]
         post[:cardHolder] = [credit_card.first_name, credit_card.last_name].join(' ')
@@ -106,6 +111,7 @@ module ActiveMerchant #:nodoc:
         post[:securityCode] = credit_card.verification_value.to_s
       end
 
+      # Internal: Sends an SSL request and returns the response object.
       def commit(action, data)
         headers = {}
         data[:payType] = action
@@ -114,10 +120,19 @@ module ActiveMerchant #:nodoc:
         handle_response(*raw_response)
       end
 
+      # Internal: Returns the endpoint to contact based on test mode.
       def endpoint
         test? ? test_url : live_url
       end
 
+      # Internal: Delegates how to handle the two response types that
+      # PayDollar returns. 
+      #
+      # Successful and Rejected purchases are returned as 200 responses
+      # with an HTML blob that contains a redirect.
+      #
+      # Errors, like expired card, etc, are returned as a 302 redirect
+      # with an error message in the query params.
       def handle_response(status, headers, body)
         case status
         when STATUS_OK then handle_ok(headers, body)
@@ -125,6 +140,8 @@ module ActiveMerchant #:nodoc:
         end
       end
 
+      # Internal: Handles a 2XX response.
+      #
       # The data sent from PayDollar includes a JS driven redirect.
       # It's not clear if this must be followed in order to complete
       # the transaction with PayDollar.
@@ -141,6 +158,7 @@ module ActiveMerchant #:nodoc:
         Response.new(success, message, params, options)
       end
 
+      # Internal: Handles a 3XX response.
       def handle_redirect(headers, body)
         redirect_url = location_for(headers)
         success = false
@@ -152,10 +170,12 @@ module ActiveMerchant #:nodoc:
         Response.new(success, message, params, options)
       end
 
+      # Internal: Returns whether redirect URL is successful.
       def success_for(path)
         !! path.include?(@options[:success_url])
       end
 
+      # Internal: Extracts and returns message from redirect URL.
       def message_for(success, path)
         return 'Success' if success
 
@@ -164,12 +184,14 @@ module ActiveMerchant #:nodoc:
         query['errorMsg'].first || 'Failed'
       end
 
+      # Internal: Extracts and returns a redirect URL from response headers.
       def location_for(headers)
         # URIs from PayDollar are not properly escaped.
         location = String(headers['location'].first)
         location.gsub(' ', '%20')
       end
 
+      # Internal: Returns options for ActiveMerchant::Billing::Response
       def response_options(authorization = nil)
         {
           :test => true,
@@ -180,6 +202,9 @@ module ActiveMerchant #:nodoc:
         }
       end
 
+      # Internal: Executes an SSL request and returns a more Rack-like
+      # response format because PayDollar's response code is
+      # informative.
       def ssl_post(endpoint, data, headers = {})
         response = raw_ssl_request(:post, endpoint, data, headers)
         [response.code.to_i, response.to_hash, response.body]
