@@ -2,37 +2,40 @@ require 'test_helper'
 
 class GlobalCollectTest < Test::Unit::TestCase
   def setup
-    @gateway = GlobalCollectGateway.new(
-                 :merchant_id => '4567'
-               )
+    @gateway = GlobalCollectGateway.new(:merchant_id => '4567')
     @credit_card = credit_card
     @amount = 100
 
     @options = {
       :order_id => Time.now.strftime('%H%M%S'),
-      :merchant_ref => '%06d' % rand(1_000)
+      :merchant_ref => '%06d' % rand(1_000),
+      :currency => 'CAD'
     }
   end
 
   def test_successful_purchase
     @gateway.expects(:ssl_post).returns(successful_purchase_response)
 
+
     assert response = @gateway.purchase(@amount, @credit_card, @options)
     assert_instance_of Response, response
-    assert_success response
 
-    # Replace with authorization number from the successful response
-    assert_equal '1020353', response.authorization
-    assert response.test?
+    assert_success response
+    assert_equal '654321', response.authorization
+
+    # assert response.test?
   end
 
   def test_unsuccessful_purchase
     @gateway.expects(:ssl_post).returns(failed_purchase_response)
 
     assert response = @gateway.purchase(@amount, @credit_card, @options)
-    assert_equal 'This card has expired', response.message
+    assert_instance_of Response, response
+
     assert_failure response
-    assert response.test?
+    assert_equal 'Not authorised', response.message
+
+    # assert response.test?
   end
 
   protected
