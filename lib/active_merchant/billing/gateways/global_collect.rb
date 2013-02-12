@@ -42,7 +42,7 @@ module ActiveMerchant #:nodoc:
       end
 
       def purchase(amount_in_cents, credit_card, options = {})
-        requires!(options, :order_id, :currency)
+        options[:amount] = amount_in_cents
 
         # Using Builder for the XML is a bit weird, so the part of the
         # tree needed is yielded for additional values.
@@ -81,12 +81,14 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_invoice(xml, options)
-        internal_order_id = options[:order_id]
-        gateway_order_id = pseudo_serial_order_id(internal_order_id)
+        requires!(options, :order_id, :currency, :amount, :language, :country)
+
+        order_id = options[:order_id]
+        merchant_reference = options[:order_id]
 
         xml.ORDER { |order|
-          order.ORDERID(gateway_order_id)
-          order.MERCHANTREFERENCE(internal_order_id)
+          order.ORDERID(order_id)
+          order.MERCHANTREFERENCE(merchant_reference)
           order.AMOUNT(options[:amount])
           order.CURRENCYCODE(options[:currency])
           order.LANGUAGECODE(options[:language])
@@ -102,7 +104,12 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_credit_card(xml, credit_card, options)
-        card_expiry = "#{'%02d' % credit_card.month}#{credit_card.year}"
+        requires!(options, :amount, :currency, :amount, :language, :country)
+
+        card_month = '%02d' % credit_card.month
+        card_year = credit_card.year.to_s[-2,2]
+        card_expiry = "#{card_month}#{card_year}"
+
         xml.PAYMENT { |payment|
           payment.PAYMENTPRODUCTID(CARD_BRANDS[credit_card.brand])
           payment.AMOUNT(options[:amount])
@@ -113,14 +120,6 @@ module ActiveMerchant #:nodoc:
           payment.EXPIRYDATE(card_expiry)
           payment.CVV(credit_card.verification_value)
         }
-      end
-
-      # The order number for GlobalCollect needs to be unique between
-      # transactions, rather than keeping a counter around we'll just
-      # join the order id and current time. Should be good enough.
-      def pseudo_serial_order_id(order_id)
-        payment_time = Time.now.strftime('%H%M%S')
-        "#{order_id}#{payment_time}"
       end
 
 
@@ -195,12 +194,16 @@ module ActiveMerchant #:nodoc:
         avs_result = response_xml.xpath('ROW/AVSRESULT').text
         cvv_result = response_xml.xpath('ROW/CVVRESULT').text
 
+        # ActiveMerchant doesn't like empty strings.
+        avs_result = nil if avs_result.blank?
+        cvv_result = nil if cvv_result.blank?
+
         {
           :test => self.test?,
           :authorization => authorization,
           :fraud_review => fraud_review,
-          :avs_result => nil, # to pass tests
-          :cvv_result => nil # to pass tests
+          :avs_result => avs_result, # to pass tests
+          :cvv_result => cvv_result # to pass tests
         }
       end
 

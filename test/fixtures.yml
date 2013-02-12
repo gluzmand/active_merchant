@@ -271,6 +271,9 @@ pay_dollar:
   fail_url: http://example.com/fail
   error_url: http://example.com/error
 
+global_collect:
+  merchant_id: MERCHANT_ID
+
 # Working credentials, no need to replace
 pay_gate_xml:
   login: '10011021600'

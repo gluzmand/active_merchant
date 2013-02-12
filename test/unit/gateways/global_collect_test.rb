@@ -9,7 +9,7 @@ class GlobalCollectTest < Test::Unit::TestCase
     @options = {
       :order_id => Time.now.strftime('%H%M%S'),
       :merchant_ref => '%06d' % rand(1_000),
-      :currency => 'CAD'
+      :currency => 'CAD', :language => 'en', :country => 'CA'
     }
   end
 
