@@ -164,14 +164,10 @@ module ActiveMerchant #:nodoc:
       end
 
       # Internal: Handles a successful request/response.
-      #
-      # The data sent from PayDollar includes a JS driven redirect.
-      # It's not clear if this must be followed in order to complete
-      # the transaction with PayDollar.
       def handle_success(headers, response_xml)
         success = true
         message = 'Success'
-        params = {}
+        params = { :raw => response_xml.to_s }
         options = response_options(response_xml)
 
         Response.new(success, message, params, options)
@@ -181,8 +177,8 @@ module ActiveMerchant #:nodoc:
       def handle_failure(headers, response_xml)
         success = false
         message = error_message(response_xml)
-        params = {}
-        options = {}
+        params = { :raw => response_xml.to_s }
+        options = response_options(response_xml)
 
         Response.new(success, message, params, options)
       end
@@ -202,8 +198,8 @@ module ActiveMerchant #:nodoc:
           :test => self.test?,
           :authorization => authorization,
           :fraud_review => fraud_review,
-          :avs_result => avs_result, # to pass tests
-          :cvv_result => cvv_result # to pass tests
+          :avs_result => avs_result,
+          :cvv_result => cvv_result
         }
       end
 
