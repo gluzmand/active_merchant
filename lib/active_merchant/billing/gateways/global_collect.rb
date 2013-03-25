@@ -153,6 +153,8 @@ module ActiveMerchant #:nodoc:
       # nested inside a RESULT node in the response XML.
       #
       def handle_response(status, headers, body)
+        body = sanitize(body)
+
         xml = Nokogiri::XML(body)
         response_xml = xml.xpath('/XML/REQUEST/RESPONSE').first
         result = response_xml.xpath('RESULT').text
@@ -163,11 +165,20 @@ module ActiveMerchant #:nodoc:
         end
       end
 
+      # Internal: Removes sensitive data from the response body before
+      # sending it anywhere else.
+      def sanitize(xml)
+        xml
+          .gsub(%r{<CREDITCARDNUMBER>.+</CREDITCARDNUMBER>}),'<CREDITCARDNUMBER>OMITTED</CREDITCARDNUMBER>')
+          .gsub(%r{<EXPIRYDATE>.+</EXPIRYDATE>}), '<EXPIRYDATE>OMITTED</EXPIRYDATE>')
+          .gsub(%r{<CVV>.+</CVV>}), '<CVV>OMITTED</CVV>')
+      end
+
       # Internal: Handles a successful request/response.
       def handle_success(headers, response_xml)
         success = true
         message = 'Success'
-        params = { :raw => response_xml.to_s }
+        params = response_params(response_xml)
         options = response_options(response_xml)
 
         Response.new(success, message, params, options)
@@ -177,10 +188,19 @@ module ActiveMerchant #:nodoc:
       def handle_failure(headers, response_xml)
         success = false
         message = error_message(response_xml)
-        params = { :raw => response_xml.to_s }
+        params = response_params(response_xml)
         options = response_options(response_xml)
 
         Response.new(success, message, params, options)
+      end
+
+      def response_params(response_xml)
+        authorization_code = response_xml.xpath('ROW/AUTHORISATIONCODE').text
+        order_id = response_xml.xpath('ROW/ORDERID').text
+
+        { :xml => response_xml.to_s,
+          :authorization_code => authorization_code,
+          :order_id => order_id }
       end
 
       # Internal: Returns options for ActiveMerchant::Billing::Response
