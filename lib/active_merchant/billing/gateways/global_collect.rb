@@ -168,10 +168,9 @@ module ActiveMerchant #:nodoc:
       # Internal: Removes sensitive data from the response body before
       # sending it anywhere else.
       def sanitize(xml)
-        xml
-          .gsub(%r{<CREDITCARDNUMBER>.+</CREDITCARDNUMBER>}),'<CREDITCARDNUMBER>OMITTED</CREDITCARDNUMBER>')
-          .gsub(%r{<EXPIRYDATE>.+</EXPIRYDATE>}), '<EXPIRYDATE>OMITTED</EXPIRYDATE>')
-          .gsub(%r{<CVV>.+</CVV>}), '<CVV>OMITTED</CVV>')
+        xml.gsub(%r{<CREDITCARDNUMBER>.+</CREDITCARDNUMBER>},'<CREDITCARDNUMBER>OMITTED</CREDITCARDNUMBER>')
+           .gsub(%r{<EXPIRYDATE>.+</EXPIRYDATE>}, '<EXPIRYDATE>OMITTED</EXPIRYDATE>')
+           .gsub(%r{<CVV>.+</CVV>}, '<CVV>OMITTED</CVV>')
       end
 
       # Internal: Handles a successful request/response.
