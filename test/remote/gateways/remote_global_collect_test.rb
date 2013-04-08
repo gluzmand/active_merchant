@@ -30,6 +30,14 @@ class RemoteGlobalCollectTest < Test::Unit::TestCase
     assert_equal 'Card expired', response.message
   end
 
+  def test_setup_purchase
+    @purchase_options[:return_url] = 'http://example.com'
+
+    assert response = @gateway.setup_purchase(1000, @purchase_options)
+    assert_success response
+    assert response.params['action_url'].present?
+  end
+
   def x_test_invalid_credentials
     # Not sure how to test this with the IP white-listing.
   end

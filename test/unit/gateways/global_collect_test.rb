@@ -14,34 +14,82 @@ class GlobalCollectTest < Test::Unit::TestCase
   end
 
   def test_successful_purchase
-    @gateway.expects(:ssl_post).returns(successful_purchase_response)
+    successful_purchase!
 
+    response = @gateway.purchase(@amount, @credit_card, @options)
+    assert_successful_response response
 
-    assert response = @gateway.purchase(@amount, @credit_card, @options)
-    assert_instance_of Response, response
-
-    assert_success response
     assert_equal '654321', response.authorization
-
-    # assert response.test?
   end
 
-  def test_unsuccessful_purchase
-    @gateway.expects(:ssl_post).returns(failed_purchase_response)
+  def test_failed_purchase
+    failed_purchase!
 
-    assert response = @gateway.purchase(@amount, @credit_card, @options)
-    assert_instance_of Response, response
+    response = @gateway.purchase(@amount, @credit_card, @options)
+    assert_failed_response response
 
-    assert_failure response
     assert_equal 'Not authorised', response.message
-
-    # assert response.test?
   end
+
+  def test_setup_purchase
+    @gateway.expects(:ssl_post).returns(setup_purchase_response)
+    @options[:return_url] = 'http://example.com'
+
+    assert response = @gateway.setup_purchase(@amount, @options)
+    assert_instance_of Response, response
+    assert_success response
+
+    form_action = 'https://eu.gcsip.nl/orb/orb?ACTION=DO_START&REF=000000775200001533210000100001&MAC=SShr%2FLCml%2BCKOAPUyzVsVJsXgEQJKEBO7ZdRO4bwx8c%3D'
+    assert_equal form_action, response.params['action_url']
+  end
+
+  def test_successful_details_for
+    successful_purchase!
+    ref = '000000775200001230350000100001'
+
+    response = @gateway.details_for(ref)
+    assert_successful_response response
+
+    assert_equal '654321', response.authorization
+  end
+
+  def test_failed_details_for
+    failed_purchase!
+    ref = '000000775200001230350000100001'
+
+    response = @gateway.details_for(ref)
+    assert_failed_response response
+
+    assert_equal 'Not authorised', response.message
+  end
+
 
   protected
 
+
+  def assert_successful_response(response)
+    assert response
+    assert_instance_of Response, response
+    assert_success response
+  end
+
+  def assert_failed_response(response)
+    assert response
+    assert_instance_of Response, response
+    assert_failure response
+  end
+
+  def successful_purchase!
+    @gateway.expects(:ssl_post).returns(successful_purchase_response)
+  end
+
+  def failed_purchase!
+    @gateway.expects(:ssl_post).returns(failed_purchase_response)
+  end
+
+
   def successful_purchase_response
-    headers = { }
+    headers = {}
     body = <<-XML
 <XML>
   <REQUEST>
@@ -102,7 +150,7 @@ class GlobalCollectTest < Test::Unit::TestCase
   end
 
   def failed_purchase_response
-    headers= { }
+    headers = {}
     body = <<-XML
 <XML>
   <REQUEST>
@@ -111,7 +159,7 @@ class GlobalCollectTest < Test::Unit::TestCase
       <MERCHANTID>1234</MERCHANTID>
       <IPADDRESS>127.0.0.1</IPADDRESS>
       <VERSION>1.0</VERSION>
-      <REQUESTIPADDRESS>46.16.250.68</REQUESTIPADDRESS>
+      <REQUESTIPADDRESS>127.0.0.1</REQUESTIPADDRESS>
     </META>
     <PARAMS>
       <ORDER>
@@ -148,6 +196,75 @@ class GlobalCollectTest < Test::Unit::TestCase
         <FRAUDRESULT>A</FRAUDRESULT>
         <FRAUDCODE>0150</FRAUDCODE>
         <AUTHORISATIONCODE/>
+      </ROW>
+    </RESPONSE>
+  </REQUEST>
+</XML>
+    XML
+
+    [200, headers, body]
+  end
+
+  def setup_purchase_response
+    headers = {}
+    body = <<-XML
+<?xml version="1.0" encoding="UTF-8"?>
+<XML>
+  <REQUEST>
+    <ACTION>INSERT_ORDERWITHPAYMENT</ACTION>
+    <META>
+      <MERCHANTID>1234</MERCHANTID>
+      <IPADDRESS>127.0.0.1</IPADDRESS>
+      <VERSION>1.0</VERSION>
+      <REQUESTIPADDRESS>127.0.0.1</REQUESTIPADDRESS>
+    </META>
+    <PARAMS>
+      <ORDER>
+        <ORDERID>153321</ORDERID>
+        <MERCHANTREFERENCE>0000000000013042</MERCHANTREFERENCE>
+        <AMOUNT>100</AMOUNT>
+        <CURRENCYCODE>HKD</CURRENCYCODE>
+        <LANGUAGECODE>en</LANGUAGECODE>
+        <COUNTRYCODE>CA</COUNTRYCODE>
+        <FIRSTNAME>Alice</FIRSTNAME>
+        <SURNAME>Smith</SURNAME>
+        <HOUSENUM>123</HOUSENUM>
+        <STREET>Example Street</STREET>
+        <CITY>Calgary</CITY>
+        <STATE>Alberta</STATE>
+        <ZIP>t3s5t5</ZIP>
+      </ORDER>
+      <PAYMENT>
+        <HOSTEDINDICATOR>1</HOSTEDINDICATOR>
+        <RETURNURL>http://localhost:4567/</RETURNURL>
+        <AMOUNT>100</AMOUNT>
+        <CURRENCYCODE>HKD</CURRENCYCODE>
+        <LANGUAGECODE>en</LANGUAGECODE>
+        <COUNTRYCODE>CA</COUNTRYCODE>
+        <PAYMENTPRODUCTID>1</PAYMENTPRODUCTID>
+      </PAYMENT>
+    </PARAMS>
+    <RESPONSE>
+      <RESULT>OK</RESULT>
+      <META>
+        <REQUESTID>4071247</REQUESTID>
+        <RESPONSEDATETIME>20130408233322</RESPONSEDATETIME>
+      </META>
+      <ROW>
+        <STATUSDATE>20130408233322</STATUSDATE>
+        <PAYMENTREFERENCE>0</PAYMENTREFERENCE>
+        <ADDITIONALREFERENCE>0000000000013042</ADDITIONALREFERENCE>
+        <ORDERID>153321</ORDERID>
+        <EXTERNALREFERENCE>0000000000013042</EXTERNALREFERENCE>
+        <EFFORTID>1</EFFORTID>
+        <REF>000000775200001533210000100001</REF>
+        <FORMACTION>https://eu.gcsip.nl/orb/orb?ACTION=DO_START&amp;REF=000000775200001533210000100001&amp;MAC=SShr%2FLCml%2BCKOAPUyzVsVJsXgEQJKEBO7ZdRO4bwx8c%3D</FORMACTION>
+        <FORMMETHOD>GET</FORMMETHOD>
+        <ATTEMPTID>1</ATTEMPTID>
+        <MERCHANTID>7752</MERCHANTID>
+        <STATUSID>20</STATUSID>
+        <RETURNMAC>iKJ8qtxTK5giP8Ps2rutQRxrp66lnVX344MnKhS1kV8=</RETURNMAC>
+        <MAC>SShr/LCml+CKOAPUyzVsVJsXgEQJKEBO7ZdRO4bwx8c=</MAC>
       </ROW>
     </RESPONSE>
   </REQUEST>

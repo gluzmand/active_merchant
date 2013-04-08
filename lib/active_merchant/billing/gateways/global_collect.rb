@@ -41,6 +41,7 @@ module ActiveMerchant #:nodoc:
         super
       end
 
+      # Make a purchase directly using the base MerchantLink API.
       def purchase(amount_in_cents, credit_card, options = {})
         options[:amount] = amount_in_cents
 
@@ -49,6 +50,33 @@ module ActiveMerchant #:nodoc:
         data = build_request('INSERT_ORDERWITHPAYMENT', options) do |params_xml|
           add_invoice(params_xml, options)
           add_credit_card(params_xml, credit_card, options)
+        end
+
+        commit(data)
+      end
+
+      # Prepare an order for purchase, the result is a URL to redirect
+      # the customer to so they can complete the purchase with their
+      # payment details.
+      def setup_purchase(amount_in_cents, options = {})
+        requires!(options, :return_url)
+
+        options[:amount] = amount_in_cents
+
+        data = build_request('INSERT_ORDERWITHPAYMENT', options) do |params_xml|
+          add_redirect(params_xml, options)
+          add_invoice(params_xml, options)
+        end
+
+        commit(data)
+      end
+
+      # Fetch the results of a purchase via the reference provided.
+      # This is used by the HostedMerchantLink API during the customer
+      # redirect after payment.
+      def details_for(ref)
+        data = build_request('GET_ORDERSTATUS', options) do |params_xml|
+          add_reference(params_xml, ref)
         end
 
         commit(data)
@@ -63,6 +91,8 @@ module ActiveMerchant #:nodoc:
       # ================
 
       def build_request(action, options)
+        merchant_reference = options[:merchant_reference]
+
         builder = Builder::XmlMarkup.new
         builder.XML { |xml|
           xml.REQUEST { |request|
@@ -72,6 +102,9 @@ module ActiveMerchant #:nodoc:
               meta.MERCHANTID(@options[:merchant_id])
               meta.IPADDRESS(@options[:ip_address])
               meta.VERSION('1.0')
+            }
+            request.GENERAL { |general|
+              general.MERCHANTREFERENCE(merchant_reference)
             }
             request.PARAMS { |params|
               yield params if block_given?
@@ -104,7 +137,7 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_credit_card(xml, credit_card, options)
-        requires!(options, :amount, :currency, :amount, :language, :country)
+        requires!(options, :amount, :currency, :language, :country)
 
         card_month = '%02d' % credit_card.month
         card_year = credit_card.year.to_s[-2,2]
@@ -119,6 +152,41 @@ module ActiveMerchant #:nodoc:
           payment.CREDITCARDNUMBER(credit_card.number.to_s)
           payment.EXPIRYDATE(card_expiry)
           payment.CVV(credit_card.verification_value)
+        }
+      end
+
+      def add_redirect(xml, options)
+        requires!(options, :return_url, :amount, :currency, :language, :country)
+
+        return_url = options[:return_url]
+
+        xml.PAYMENT { |payment|
+          payment.HOSTEDINDICATOR(1)
+          payment.RETURNURL('http://localhost:4567/')
+
+          payment.AMOUNT(options[:amount])
+          payment.CURRENCYCODE(options[:currency])
+          payment.LANGUAGECODE(options[:language])
+          payment.COUNTRYCODE(options[:country])
+
+          # Currently there is no way for the customer to pick their
+          # payment method through the checkout, so this is hard-coded.
+          # The payment API doesn't seem to care whether this value
+          # agrees with the card number actually entered by the
+          # customer. I suspect it's only here so the customer can see
+          # what cards are useable for payment. Hopefully this isn't
+          # just an artifact of the test server.
+          payment.PAYMENTPRODUCTID(CARD_BRANDS['visa'])
+        }
+      end
+
+      def add_reference(xml, ref)
+        order_id = ref[10,10].gsub(/^0*/, '')
+        effort_id = ref[20,5].gsub(/^0*/, '')
+
+        xml.ORDER { |order|
+          order.ORDERID(order_id)
+          order.EFFORTID(effort_id)
         }
       end
 
@@ -196,10 +264,12 @@ module ActiveMerchant #:nodoc:
       def response_params(response_xml)
         authorization_code = response_xml.xpath('ROW/AUTHORISATIONCODE').text
         order_id = response_xml.xpath('ROW/ORDERID').text
+        action_url = response_xml.xpath('ROW/FORMACTION').text
 
         { :xml => response_xml.to_s,
           :authorization_code => authorization_code,
-          :order_id => order_id }
+          :order_id => order_id,
+          :action_url => action_url }.reject { |k,v| v.blank? }
       end
 
       # Internal: Returns options for ActiveMerchant::Billing::Response
