@@ -74,7 +74,7 @@ module ActiveMerchant #:nodoc:
       # Fetch the results of a purchase via the reference provided.
       # This is used by the HostedMerchantLink API during the customer
       # redirect after payment.
-      def details_for(ref)
+      def details_for(ref, options = {})
         data = build_request('GET_ORDERSTATUS', options) do |params_xml|
           add_reference(params_xml, ref)
         end
@@ -162,7 +162,7 @@ module ActiveMerchant #:nodoc:
 
         xml.PAYMENT { |payment|
           payment.HOSTEDINDICATOR(1)
-          payment.RETURNURL('http://localhost:4567/')
+          payment.RETURNURL(return_url)
 
           payment.AMOUNT(options[:amount])
           payment.CURRENCYCODE(options[:currency])
