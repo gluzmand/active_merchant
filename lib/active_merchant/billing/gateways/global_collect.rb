@@ -5,8 +5,8 @@ module ActiveMerchant #:nodoc:
   module Billing #:nodoc:
     class GlobalCollectGateway < Gateway
       self.test_url = 'https://ps.gcsip.nl/wdl/wdl'
-      self.live_url = 'https://ps.gcsip.nl/wdl/wdl'
-      # self.live_url = 'https://ps.gcsip.com/wdl/wdl'
+      # self.live_url = 'https://ps.gcsip.nl/wdl/wdl'
+      self.live_url = 'https://ps.gcsip.com/wdl/wdl'
 
       # GlobaCollect uses 1234 cents format for payment
       self.money_format = :cents
