@@ -32,6 +32,11 @@ module ActiveMerchant #:nodoc:
         'mc' => 3
       }
 
+      STATUS_PENDING_AT_MERCHANT = '20'.freeze
+      STATUS_PENDING_AT_GLOBAL_COLLECT = '25'.freeze
+      STATUS_REJECTED = '100'.freeze
+      STATUS_READY = '800'.freeze
+
       CURRENCY_CODES = { }
       COUNTRY_CODES = { }
 
@@ -243,8 +248,8 @@ module ActiveMerchant #:nodoc:
 
       # Internal: Handles a successful request/response.
       def handle_success(headers, response_xml)
-        success = true
-        message = 'Success'
+        success = response_success(response_xml)
+        message = response_message(response_xml)
         params = response_params(response_xml)
         options = response_options(response_xml)
 
@@ -261,9 +266,29 @@ module ActiveMerchant #:nodoc:
         Response.new(success, message, params, options)
       end
 
+      def response_success(response_xml)
+        case response_xml.xpath('ROW/STATUSID').text
+        when STATUS_PENDING_AT_MERCHANT,
+             STATUS_PENDING_AT_GLOBAL_COLLECT,
+             STATUS_READY then true
+        when STATUS_REJECTED then false
+        else false
+        end
+      end
+
+      def response_message(response_xml)
+        case response_xml.xpath('ROW/STATUSID').text
+        when STATUS_PENDING_AT_MERCHANT then 'Pending'
+        when STATUS_READY then 'Success'
+        when STATUS_REJECTED then 'Rejected'
+        else 'Failed'
+        end
+      end
+
+
       def response_params(response_xml)
         authorization_code = response_xml.xpath('ROW/AUTHORISATIONCODE').text
-        order_id = response_xml.xpath('ROW/ORDERID').text
+        order_id = response_xml.xpath('ROW/ORDERID').first.try(:text)
         action_url = response_xml.xpath('ROW/FORMACTION').text
 
         { :xml => response_xml.to_s,

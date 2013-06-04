@@ -20,6 +20,16 @@ class GlobalCollectTest < Test::Unit::TestCase
     assert_successful_response response
 
     assert_equal '654321', response.authorization
+    assert_equal '085114', response.params['order_id']
+  end
+
+  def test_rejected_purchase
+    rejected_purchase!
+
+    response = @gateway.purchase(@amount, @credit_card, @options)
+    assert_failed_response response
+
+    assert_equal '654321', response.authorization
   end
 
   def test_failed_purchase
@@ -83,6 +93,10 @@ class GlobalCollectTest < Test::Unit::TestCase
     @gateway.expects(:ssl_post).returns(successful_purchase_response)
   end
 
+  def rejected_purchase!
+    @gateway.expects(:ssl_post).returns(rejected_purchase_response)
+  end
+
   def failed_purchase!
     @gateway.expects(:ssl_post).returns(failed_purchase_response)
   end
@@ -140,6 +154,70 @@ class GlobalCollectTest < Test::Unit::TestCase
         <ATTEMPTID>1</ATTEMPTID>
         <MERCHANTID>1234</MERCHANTID>
         <STATUSID>800</STATUSID>
+      </ROW>
+      <ROW>
+        <ORDERID>085114</ORDERID>
+      </ROW>
+    </RESPONSE>
+  </REQUEST>
+</XML>
+    XML
+
+    [200, headers, body]
+  end
+
+  def rejected_purchase_response
+    headers = {}
+    body = <<-XML
+<XML>
+  <REQUEST>
+    <ACTION>INSERT_ORDERWITHPAYMENT</ACTION>
+    <META>
+      <MERCHANTID>1234</MERCHANTID>
+      <IPADDRESS>127.0.0.1</IPADDRESS>
+      <VERSION>1.0</VERSION>
+      <REQUESTIPADDRESS>127.0.0.1</REQUESTIPADDRESS>
+    </META>
+    <PARAMS>
+      <ORDER>
+        <ORDERID>085114</ORDERID>
+        <MERCHANTREFERENCE>0000000000592258</MERCHANTREFERENCE>
+        <AMOUNT>100</AMOUNT>
+        <CURRENCYCODE>HKD</CURRENCYCODE>
+        <LANGUAGECODE>en</LANGUAGECODE>
+        <COUNTRYCODE>CA</COUNTRYCODE>
+      </ORDER>
+      <PAYMENT>
+        <PAYMENTPRODUCTID>3</PAYMENTPRODUCTID>
+        <AMOUNT>100</AMOUNT>
+        <CURRENCYCODE>HKD</CURRENCYCODE>
+        <LANGUAGECODE>en</LANGUAGECODE>
+        <COUNTRYCODE>CA</COUNTRYCODE>
+        <CREDITCARDNUMBER>4444333322221111</CREDITCARDNUMBER>
+        <EXPIRYDATE>0115</EXPIRYDATE>
+        <CVV>123</CVV>
+      </PAYMENT>
+    </PARAMS>
+    <RESPONSE>
+      <RESULT>OK</RESULT>
+      <META>
+        <REQUESTID>711237</REQUESTID>
+        <RESPONSEDATETIME>20130208165117</RESPONSEDATETIME>
+      </META>
+      <ROW>
+        <STATUSDATE>20130208165117</STATUSDATE>
+        <FRAUDRESULT>A</FRAUDRESULT>
+        <AUTHORISATIONCODE>654321</AUTHORISATIONCODE>
+        <PAYMENTREFERENCE>0</PAYMENTREFERENCE>
+        <ADDITIONALREFERENCE>0000000000592258</ADDITIONALREFERENCE>
+        <ORDERID>085114</ORDERID>
+        <EXTERNALREFERENCE>0000000000592258</EXTERNALREFERENCE>
+        <FRAUDCODE>0100</FRAUDCODE>
+        <EFFORTID>1</EFFORTID>
+        <CVVRESULT>0</CVVRESULT>
+        <ATTEMPTID>1</ATTEMPTID>
+        <MERCHANTID>1234</MERCHANTID>
+        <STATUSID>100</STATUSID>
       </ROW>
     </RESPONSE>
   </REQUEST>
