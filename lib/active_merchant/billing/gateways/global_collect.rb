@@ -97,6 +97,10 @@ module ActiveMerchant #:nodoc:
 
       def build_request(action, options)
         merchant_reference = options[:merchant_reference]
+        api_version = case action
+                      when 'GET_ORDERSTATUS' then '2.0'
+                      else '1.0'
+                      end
 
         builder = Builder::XmlMarkup.new
         builder.XML { |xml|
@@ -106,7 +110,7 @@ module ActiveMerchant #:nodoc:
               # These values appear to be optional.
               meta.MERCHANTID(@options[:merchant_id])
               meta.IPADDRESS(@options[:ip_address])
-              meta.VERSION('1.0')
+              meta.VERSION(api_version)
             }
             request.GENERAL { |general|
               general.MERCHANTREFERENCE(merchant_reference)
@@ -267,7 +271,7 @@ module ActiveMerchant #:nodoc:
       end
 
       def response_success(response_xml)
-        case response_xml.xpath('ROW/STATUSID').text
+        case response_xml.xpath('//STATUSID').text
         when STATUS_PENDING_AT_MERCHANT,
              STATUS_PENDING_AT_GLOBAL_COLLECT,
              STATUS_READY then true
@@ -277,11 +281,10 @@ module ActiveMerchant #:nodoc:
       end
 
       def response_message(response_xml)
-        case response_xml.xpath('ROW/STATUSID').text
+        case response_xml.xpath('//STATUSID').text
         when STATUS_PENDING_AT_MERCHANT then 'Pending'
         when STATUS_READY then 'Success'
-        when STATUS_REJECTED then 'Rejected'
-        else 'Failed'
+        else error_message(response_xml)
         end
       end
 
@@ -299,10 +302,10 @@ module ActiveMerchant #:nodoc:
 
       # Internal: Returns options for ActiveMerchant::Billing::Response
       def response_options(response_xml)
-        authorization = response_xml.xpath('ROW/AUTHORISATIONCODE').text
-        fraud_review = response_xml.xpath('ROW/FRAUDRESULT').text
-        avs_result = response_xml.xpath('ROW/AVSRESULT').text
-        cvv_result = response_xml.xpath('ROW/CVVRESULT').text
+        authorization = response_xml.xpath('//AUTHORISATIONCODE').text
+        fraud_review = response_xml.xpath('//FRAUDRESULT').text
+        avs_result = response_xml.xpath('//AVSRESULT').text
+        cvv_result = response_xml.xpath('//CVVRESULT').text
 
         # ActiveMerchant doesn't like empty strings.
         avs_result = nil if avs_result.blank?
@@ -318,12 +321,14 @@ module ActiveMerchant #:nodoc:
       end
 
       def error_message(response_xml)
-        code = response_xml.xpath('ERROR/CODE').text
-        case code
-          when '210000120' then 'Invalid card number'
-          when '21000120' then 'Card expired'
-          else response_xml.xpath('ERROR/MESSAGE').text
-        end
+        errors = response_xml.xpath('//ERROR')
+        return 'Unknown error' if errors.empty?
+
+        code = errors.xpath('CODE').text
+        message = errors.xpath('MESSAGE').text
+
+        "#{code}: #{message}"
+        message
       end
 
     end

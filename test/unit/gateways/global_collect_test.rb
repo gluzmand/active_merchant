@@ -14,7 +14,7 @@ class GlobalCollectTest < Test::Unit::TestCase
   end
 
   def test_successful_purchase
-    successful_purchase!
+    @gateway.expects(:ssl_post).returns(successful_purchase_response)
 
     response = @gateway.purchase(@amount, @credit_card, @options)
     assert_successful_response response
@@ -24,21 +24,21 @@ class GlobalCollectTest < Test::Unit::TestCase
   end
 
   def test_rejected_purchase
-    rejected_purchase!
+    @gateway.expects(:ssl_post).returns(rejected_purchase_response)
 
     response = @gateway.purchase(@amount, @credit_card, @options)
     assert_failed_response response
 
-    assert_equal '654321', response.authorization
+    assert_equal '430285 Not authorised', response.message
   end
 
   def test_failed_purchase
-    failed_purchase!
+    @gateway.expects(:ssl_post).returns(failed_purchase_response)
 
     response = @gateway.purchase(@amount, @credit_card, @options)
     assert_failed_response response
 
-    assert_equal 'Not authorised', response.message
+    assert_equal '430285 Not authorised', response.message
   end
 
   def test_setup_purchase
@@ -54,7 +54,7 @@ class GlobalCollectTest < Test::Unit::TestCase
   end
 
   def test_successful_details_for
-    successful_purchase!
+    @gateway.expects(:ssl_post).returns(successful_details_response)
     ref = '000000775200001230350000100001'
 
     response = @gateway.details_for(ref)
@@ -64,13 +64,13 @@ class GlobalCollectTest < Test::Unit::TestCase
   end
 
   def test_failed_details_for
-    failed_purchase!
+    @gateway.expects(:ssl_post).returns(failed_details_response)
     ref = '000000775200001230350000100001'
 
     response = @gateway.details_for(ref)
     assert_failed_response response
 
-    assert_equal 'Not authorised', response.message
+    assert_equal '430285 Not authorised', response.message
   end
 
 
@@ -87,18 +87,6 @@ class GlobalCollectTest < Test::Unit::TestCase
     assert response
     assert_instance_of Response, response
     assert_failure response
-  end
-
-  def successful_purchase!
-    @gateway.expects(:ssl_post).returns(successful_purchase_response)
-  end
-
-  def rejected_purchase!
-    @gateway.expects(:ssl_post).returns(rejected_purchase_response)
-  end
-
-  def failed_purchase!
-    @gateway.expects(:ssl_post).returns(failed_purchase_response)
   end
 
 
@@ -204,21 +192,32 @@ class GlobalCollectTest < Test::Unit::TestCase
         <REQUESTID>711237</REQUESTID>
         <RESPONSEDATETIME>20130208165117</RESPONSEDATETIME>
       </META>
-      <ROW>
-        <STATUSDATE>20130208165117</STATUSDATE>
+      <STATUS>
+        <STATUSDATE>20130605191248</STATUSDATE>
+        <PAYMENTMETHODID>1</PAYMENTMETHODID>
+        <MERCHANTREFERENCE>0000000000817442</MERCHANTREFERENCE>
         <FRAUDRESULT>A</FRAUDRESULT>
-        <AUTHORISATIONCODE>654321</AUTHORISATIONCODE>
+        <ATTEMPTID>1</ATTEMPTID>
         <PAYMENTREFERENCE>0</PAYMENTREFERENCE>
-        <ADDITIONALREFERENCE>0000000000592258</ADDITIONALREFERENCE>
-        <ORDERID>085114</ORDERID>
-        <EXTERNALREFERENCE>0000000000592258</EXTERNALREFERENCE>
+        <AMOUNT>100</AMOUNT>
+        <EXPIRYDATE>0114</EXPIRYDATE>
+        <MERCHANTID>7293</MERCHANTID>
+        <ORDERID>111239</ORDERID>
+        <STATUSID>100</STATUSID>
+        <CREDITCARDNUMBER>************7107</CREDITCARDNUMBER>
         <FRAUDCODE>0100</FRAUDCODE>
         <EFFORTID>1</EFFORTID>
         <CVVRESULT>0</CVVRESULT>
-        <ATTEMPTID>1</ATTEMPTID>
-        <MERCHANTID>1234</MERCHANTID>
-        <STATUSID>100</STATUSID>
-      </ROW>
+        <CURRENCYCODE>HKD</CURRENCYCODE>
+        <PAYMENTPRODUCTID>3</PAYMENTPRODUCTID>
+        <ERRORS>
+          <ERROR>
+          <TYPE>B</TYPE>
+          <CODE>430285</CODE>
+          <MESSAGE>430285 Not authorised</MESSAGE>
+          </ERROR>
+        </ERRORS>
+      </STATUS>
     </RESPONSE>
   </REQUEST>
 </XML>
@@ -267,7 +266,7 @@ class GlobalCollectTest < Test::Unit::TestCase
       </META>
       <ERROR>
         <CODE>430285</CODE>
-        <MESSAGE>Not authorised</MESSAGE>
+        <MESSAGE>430285 Not authorised</MESSAGE>
       </ERROR>
       <ROW>
         <CVVRESULT>M</CVVRESULT>
@@ -352,4 +351,115 @@ class GlobalCollectTest < Test::Unit::TestCase
     [200, headers, body]
   end
 
+  def successful_details_response
+    headers = {}
+    body = <<-XML
+<?xml version="1.0" encoding="UTF-8"?>
+<XML>
+  <REQUEST>
+    <ACTION>GET_ORDERSTATUS</ACTION>
+    <META>
+      <MERCHANTID>7293</MERCHANTID>
+      <IPADDRESS>127.0.0.1</IPADDRESS>
+      <VERSION>2.0</VERSION>
+      <REQUESTIPADDRESS>46.16.250.68</REQUESTIPADDRESS>
+    </META>
+    <PARAMS>
+      <ORDER>
+        <ORDERID>112257</ORDERID>
+        <EFFORID>1</EFFORID>
+      </ORDER>
+    </PARAMS>
+    <RESPONSE>
+      <RESULT>OK</RESULT>
+      <META>
+        <REQUESTID>6375130</REQUESTID>
+        <RESPONSEDATETIME>20130605195807</RESPONSEDATETIME>
+      </META>
+      <STATUS>
+        <STATUSDATE>20130605192311</STATUSDATE>
+        <PAYMENTMETHODID>1</PAYMENTMETHODID>
+        <MERCHANTREFERENCE>0000000000026134</MERCHANTREFERENCE>
+        <FRAUDRESULT>A</FRAUDRESULT>
+        <ATTEMPTID>1</ATTEMPTID>
+        <AUTHORISATIONCODE>654321</AUTHORISATIONCODE>
+        <PAYMENTREFERENCE>0</PAYMENTREFERENCE>
+        <AMOUNT>100</AMOUNT>
+        <EXPIRYDATE>0114</EXPIRYDATE>
+        <MERCHANTID>7293</MERCHANTID>
+        <ORDERID>112257</ORDERID>
+        <STATUSID>800</STATUSID>
+        <CREDITCARDNUMBER>************1111</CREDITCARDNUMBER>
+        <FRAUDCODE>0100</FRAUDCODE>
+        <EFFORTID>1</EFFORTID>
+        <CVVRESULT>0</CVVRESULT>
+        <CURRENCYCODE>HKD</CURRENCYCODE>
+        <PAYMENTPRODUCTID>3</PAYMENTPRODUCTID>
+      </STATUS>
+    </RESPONSE>
+  </REQUEST>
+</XML>
+    XML
+
+    [200, headers, body]
+  end
+
+  def failed_details_response
+    headers = {}
+    body = <<-XML
+<?xml version="1.0" encoding="UTF-8"?>
+<XML>
+  <REQUEST>
+    <ACTION>GET_ORDERSTATUS</ACTION>
+    <META>
+      <MERCHANTID>7293</MERCHANTID>
+      <IPADDRESS>127.0.0.1</IPADDRESS>
+      <VERSION>2.0</VERSION>
+      <REQUESTIPADDRESS>46.16.250.68</REQUESTIPADDRESS>
+    </META>
+    <PARAMS>
+      <ORDER>
+        <ORDERID>111239</ORDERID>
+        <EFFORID>1</EFFORID>
+      </ORDER>
+    </PARAMS>
+    <RESPONSE>
+      <RESULT>OK</RESULT>
+      <META>
+        <REQUESTID>6375159</REQUESTID>
+        <RESPONSEDATETIME>20130605195854</RESPONSEDATETIME>
+      </META>
+      <STATUS>
+        <STATUSDATE>20130605191248</STATUSDATE>
+        <PAYMENTMETHODID>1</PAYMENTMETHODID>
+        <MERCHANTREFERENCE>0000000000817442</MERCHANTREFERENCE>
+        <FRAUDRESULT>A</FRAUDRESULT>
+        <ATTEMPTID>1</ATTEMPTID>
+        <PAYMENTREFERENCE>0</PAYMENTREFERENCE>
+        <AMOUNT>100</AMOUNT>
+        <EXPIRYDATE>0114</EXPIRYDATE>
+        <MERCHANTID>7293</MERCHANTID>
+        <ORDERID>111239</ORDERID>
+        <STATUSID>100</STATUSID>
+        <CREDITCARDNUMBER>************7107</CREDITCARDNUMBER>
+        <FRAUDCODE>0100</FRAUDCODE>
+        <EFFORTID>1</EFFORTID>
+        <CVVRESULT>0</CVVRESULT>
+        <CURRENCYCODE>HKD</CURRENCYCODE>
+        <PAYMENTPRODUCTID>3</PAYMENTPRODUCTID>
+        <ERRORS>
+          <ERROR>
+            <TYPE>B</TYPE>
+            <CODE>430285</CODE>
+            <MESSAGE>430285 Not authorised</MESSAGE>
+          </ERROR>
+        </ERRORS>
+      </STATUS>
+    </RESPONSE>
+  </REQUEST>
+</XML>
+    XML
+
+    [200, headers, body]
+  end
 end
