@@ -290,9 +290,9 @@ module ActiveMerchant #:nodoc:
 
 
       def response_params(response_xml)
-        authorization_code = response_xml.xpath('ROW/AUTHORISATIONCODE').text
-        order_id = response_xml.xpath('ROW/ORDERID').first.try(:text)
-        action_url = response_xml.xpath('ROW/FORMACTION').text
+        authorization_code = response_xml.xpath('//AUTHORISATIONCODE').text
+        order_id = response_xml.xpath('//ORDERID').first.try(:text)
+        action_url = response_xml.xpath('//FORMACTION').text
 
         { :xml => response_xml.to_s,
           :authorization_code => authorization_code,
