@@ -272,9 +272,7 @@ module ActiveMerchant #:nodoc:
 
       def response_success(response_xml)
         case response_xml.xpath('//STATUSID').text
-        when STATUS_PENDING_AT_MERCHANT,
-             STATUS_PENDING_AT_GLOBAL_COLLECT,
-             STATUS_READY then true
+        when STATUS_READY then true
         when STATUS_REJECTED then false
         else false
         end
@@ -283,6 +281,7 @@ module ActiveMerchant #:nodoc:
       def response_message(response_xml)
         case response_xml.xpath('//STATUSID').text
         when STATUS_PENDING_AT_MERCHANT then 'Pending'
+        when STATUS_PENDING_AT_GLOBAL_COLLECT then 'Cancelled'
         when STATUS_READY then 'Success'
         else error_message(response_xml)
         end
@@ -292,11 +291,13 @@ module ActiveMerchant #:nodoc:
       def response_params(response_xml)
         authorization_code = response_xml.xpath('//AUTHORISATIONCODE').text
         order_id = response_xml.xpath('//ORDERID').first.try(:text)
+        status = response_xml.xpath('//STATUSID').first.try(:text)
         action_url = response_xml.xpath('//FORMACTION').text
 
         { :xml => response_xml.to_s,
           :authorization_code => authorization_code,
           :order_id => order_id,
+          :status => status,
           :action_url => action_url }.reject { |k,v| v.blank? }
       end
 

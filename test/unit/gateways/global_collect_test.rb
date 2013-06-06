@@ -21,6 +21,7 @@ class GlobalCollectTest < Test::Unit::TestCase
 
     assert_equal '654321', response.authorization
     assert_equal '085114', response.params['order_id']
+    assert_equal '800', response.params['status']
   end
 
   def test_rejected_purchase
@@ -30,6 +31,7 @@ class GlobalCollectTest < Test::Unit::TestCase
     assert_failed_response response
 
     assert_equal '430285 Not authorised', response.message
+    assert_equal '100', response.params['status']
   end
 
   def test_failed_purchase
@@ -39,6 +41,7 @@ class GlobalCollectTest < Test::Unit::TestCase
     assert_failed_response response
 
     assert_equal '430285 Not authorised', response.message
+    assert_equal nil, response.params['status']
   end
 
   def test_setup_purchase
@@ -47,10 +50,11 @@ class GlobalCollectTest < Test::Unit::TestCase
 
     assert response = @gateway.setup_purchase(@amount, @options)
     assert_instance_of Response, response
-    assert_success response
+    assert_failed_response response
 
     form_action = 'https://eu.gcsip.nl/orb/orb?ACTION=DO_START&REF=000000775200001533210000100001&MAC=SShr%2FLCml%2BCKOAPUyzVsVJsXgEQJKEBO7ZdRO4bwx8c%3D'
     assert_equal form_action, response.params['action_url']
+    assert_equal '20', response.params['status']
   end
 
   def test_successful_details_for

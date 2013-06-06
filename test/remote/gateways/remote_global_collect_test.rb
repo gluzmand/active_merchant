@@ -34,7 +34,10 @@ class RemoteGlobalCollectTest < Test::Unit::TestCase
     @purchase_options[:return_url] = 'http://example.com'
 
     assert response = @gateway.setup_purchase(1000, @purchase_options)
-    assert_success response
+    # The status code here implies success, but we mark it as failed so
+    # that upstream code doesn't mistake this for a successful purchase.
+    # Need to wrap a custom Response class around this to clarify things.
+    assert_failure response
     assert response.params['action_url'].present?
   end
 
