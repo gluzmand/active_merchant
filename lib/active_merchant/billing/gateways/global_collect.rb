@@ -321,8 +321,13 @@ module ActiveMerchant #:nodoc:
         cvv_result = response_xml.xpath('//CVVRESULT').text
 
         # ActiveMerchant doesn't like empty strings.
-        avs_result = nil if avs_result.blank?
-        cvv_result = nil if cvv_result.blank?
+        #
+        # IGNORING THESE VALUES
+        # The live gateway returns invalid data,
+        # eg. 0, which directly contradicts the system:
+        # https://en.wikipedia.org/wiki/Address_Verification_System
+        avs_result = nil # if avs_result.blank?
+        cvv_result = nil # if cvv_result.blank?
 
         {
           :test => self.test?,
