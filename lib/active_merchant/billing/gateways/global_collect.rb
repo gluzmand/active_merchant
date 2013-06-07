@@ -5,7 +5,6 @@ module ActiveMerchant #:nodoc:
   module Billing #:nodoc:
     class GlobalCollectGateway < Gateway
       self.test_url = 'https://ps.gcsip.nl/wdl/wdl'
-      # self.live_url = 'https://ps.gcsip.nl/wdl/wdl'
       self.live_url = 'https://ps.gcsip.com/wdl/wdl'
 
       # GlobaCollect uses 1234 cents format for payment
@@ -220,14 +219,13 @@ module ActiveMerchant #:nodoc:
       # Internal: Sends an SSL request and returns the Response object.
       def commit(data)
         headers = {}
-
         raw_response = ssl_post(endpoint, data.to_s, headers)
         handle_response(*raw_response)
       end
 
       # Internal: Returns the endpoint to contact based on test mode.
       def endpoint
-        test? ? test_url : live_url
+        options[:test] ? test_url : live_url
       end
 
       # Internal: Executes an SSL request and returns a more Rack-like
