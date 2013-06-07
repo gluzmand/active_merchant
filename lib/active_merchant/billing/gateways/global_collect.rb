@@ -165,7 +165,12 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_redirect(xml, options)
-        requires!(options, :return_url, :amount, :currency, :language, :country)
+        requires!(options, :return_url,
+                           :amount,
+                           :currency,
+                           :language,
+                           :country,
+                           :payment_product)
 
         return_url = options[:return_url]
 
@@ -185,7 +190,16 @@ module ActiveMerchant #:nodoc:
           # customer. I suspect it's only here so the customer can see
           # what cards are useable for payment. Hopefully this isn't
           # just an artifact of the test server.
-          payment.PAYMENTPRODUCTID(CARD_BRANDS['visa'])
+          #
+          # HAH! Turns out it IS just an artifact of the test server.
+          # They return an awesome SERVERMALFUNCTION error when you
+          # get the wrong value. 
+          #
+          # A bunch of hacks have been added to checkout so that
+          # customers can pick their credit card type before we ever
+          # show them payment info. The experience is much better this
+          # way.
+          payment.PAYMENTPRODUCTID(options[:payment_product])
         }
       end
 
