@@ -168,8 +168,7 @@ module ActiveMerchant #:nodoc:
                            :amount,
                            :currency,
                            :language,
-                           :country,
-                           :payment_product)
+                           :country)
 
         return_url = options[:return_url]
 
@@ -190,15 +189,23 @@ module ActiveMerchant #:nodoc:
           # what cards are useable for payment. Hopefully this isn't
           # just an artifact of the test server.
           #
+          # UPDATE:
           # HAH! Turns out it IS just an artifact of the test server.
           # They return an awesome SERVERMALFUNCTION error when you
-          # get the wrong value. 
+          # get the wrong value. At least some of the time. It's very
+          # random how these errors appear.
           #
           # A bunch of hacks have been added to checkout so that
           # customers can pick their credit card type before we ever
           # show them payment info. The experience is much better this
           # way.
-          payment.PAYMENTPRODUCTID(options[:payment_product])
+          #
+          # NOTE: Inserting a default value here because the app
+          # validation has caused some problems and so this value might
+          # be nil if we have to disable it during an emergency.
+          payment_product = options[:payment_product]
+          payment_product = '1' if payment_product.blank?
+          payment.PAYMENTPRODUCTID(payment_product)
         }
       end
 
